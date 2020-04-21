@@ -19,18 +19,24 @@ namespace File.MergeSort.Sorters
         {
             var results = System.IO
                 .File.ReadLines(fileName)
-                .Select(int.Parse)
-                .OrderBy(i => i)
-                .Select(i => i.ToString());
+                .Select(int.Parse);
 
             Directory.CreateDirectory(_configuration.ChunkFilesBasePath);
             int readLines = 0;
             while (token.IsCancellationRequested == false)
             {
-                var takenResults = results.Skip(readLines).Take(_configuration.LinesBuffer).ToArray();
+                var takenResults = 
+                    results
+                        .Skip(readLines)
+                        .Take(_configuration.LinesBuffer)
+                        .OrderBy(i => i)
+                        .Select(i => i.ToString())
+                    .ToArray();
+
                 if (takenResults.Any() == false) break;
                 var from = readLines;
-                var to = readLines += _configuration.LinesBuffer;
+                readLines += _configuration.LinesBuffer;
+                var to = readLines;
                 var chunkPath = Path.Join(_configuration.ChunkFilesBasePath, string.Format("{0}-{1}-{2}.txt", fileName.Replace(@"\", "_").Replace("/", "_"), from, to));
 
                 yield return new ChunkFileProcess
@@ -59,11 +65,13 @@ namespace File.MergeSort.Sorters
             int readLines = 0;
             while (token.IsCancellationRequested == false)
             {
-                var oneRunResult = chunks
-                    .SelectMany(chunkLines => chunkLines.Skip(readLines).Take(oneFileBufferLines))
-                    .Select(int.Parse)
-                    .OrderBy(i => i)
-                    .Select(i => i.ToString());
+                var oneRunResult = 
+                    chunks
+                        .SelectMany(chunkLines => chunkLines.Skip(readLines).Take(oneFileBufferLines))
+                        .Select(int.Parse)
+                        .OrderBy(i => i)
+                        .Select(i => i.ToString())
+                    .ToArray();
 
                 if (oneRunResult.Any() == false) break;
 
