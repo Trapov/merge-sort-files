@@ -9,7 +9,7 @@ namespace File.MergeSort
     {
         public static CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
-        public static DefaultSorter Sorter => new DefaultSorter(new DefaultSorter.DefaultSorterConfiguration(
+        public static ChunkedMergeSorter Sorter = new ChunkedMergeSorter(new ChunkedMergeSorterConfiguration(
             Constants.DefaultOutputFile,
             Constants.DefaultChunkFileBasePath,
             Constants.DefaultLinesBuffer
@@ -22,7 +22,21 @@ namespace File.MergeSort
 
         public static class UI
         {
-            public static void UpdateElapsed() => Model.TimeElapsed = Metrics.Stopwatch.Elapsed;
+            public static void UpdateElapsed()
+            {
+                try
+                {
+                    //not atomic so have to lock
+                    SemaphoreSlim.Wait();
+                    Model.TimeElapsed = Metrics.Stopwatch.Elapsed;
+                }
+                finally
+                {
+                    SemaphoreSlim.Release();
+                }
+            }
+
+            public static SemaphoreSlim SemaphoreSlim = default;
 
             public static FileMergeSortModel Model = new FileMergeSortModel();
             public static TaskBasedRenderingLoop<FileMergeSortModel, FileMergeSortView> RenderingLoop =
@@ -35,7 +49,7 @@ namespace File.MergeSort
                     {
                         Model.Skip += 10;
                     })
-                    .Model(Model)
+                    .Model(Model, out SemaphoreSlim)
                     .ToView<FileMergeSortView>()
                     .WithLoop<TaskBasedRenderingLoop<FileMergeSortModel, FileMergeSortView>>();
         }

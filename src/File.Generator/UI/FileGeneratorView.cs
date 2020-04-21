@@ -12,7 +12,7 @@ namespace File.Generator
         public static string RenderRow(FileGeneratorModel.GeneratedFile generatedFile)
         {
             var fileNameEntry = string.Join("", generatedFile.FileName.PadRight(FileNameLength).Take(FileNameLength));
-            var numberOfLinesEntry = string.Join("", generatedFile.NumberOfLines.ToString().PadRight(NumberOfLinesLength).Take(NumberOfLinesLength-3));
+            var numberOfLinesEntry = string.Join("", generatedFile.NumberOfLines.ToString().PadRight(NumberOfLinesLength).Take(NumberOfLinesLength - 3));
 
             var stateEntry = generatedFile.IsDone ? "Done".InGreen() : "Writing".InYellow();
 

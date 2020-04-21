@@ -17,7 +17,7 @@ namespace File.MergeSort
 
         public TimeSpan TimeElapsed { get; set; } = TimeSpan.Zero;
         public ConcurrentBag<ChunkedFile> ChunkedFiles { get; } = new ConcurrentBag<ChunkedFile>();
-        
+
         public bool IsDone { get; set; }
     }
 }

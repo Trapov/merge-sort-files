@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -6,38 +7,44 @@ using System.Threading.Tasks;
 
 namespace File.MergeSort.Sorters
 {
-    public sealed class DefaultSorter
+    public sealed class ChunkedMergeSorter
     {
-        private readonly DefaultSorterConfiguration _configuration;
+        private readonly ChunkedMergeSorterConfiguration _configuration;
 
-        public DefaultSorter(DefaultSorterConfiguration configuration)
+        public ChunkedMergeSorter(ChunkedMergeSorterConfiguration configuration)
         {
             _configuration = configuration;
+            if (Directory.Exists(_configuration.ChunkFilesBasePath))
+                Directory.Delete(_configuration.ChunkFilesBasePath, true);
+
+            Directory.CreateDirectory(_configuration.ChunkFilesBasePath);
         }
 
         public IEnumerable<ChunkFileProcess> Chunk(string fileName, CancellationToken token)
         {
-            var results = System.IO
-                .File.ReadLines(fileName)
-                .Select(int.Parse);
+            var results = System.IO.File.ReadLines(fileName).Select(int.Parse);
 
-            Directory.CreateDirectory(_configuration.ChunkFilesBasePath);
             int readLines = 0;
             while (token.IsCancellationRequested == false)
             {
-                var takenResults = 
+                var takenResults =
                     results
                         .Skip(readLines)
                         .Take(_configuration.LinesBuffer)
                         .OrderBy(i => i)
-                        .Select(i => i.ToString())
+                        .Select(i => i.ToString(CultureInfo.InvariantCulture))
                     .ToArray();
 
                 if (takenResults.Any() == false) break;
                 var from = readLines;
-                readLines += _configuration.LinesBuffer;
-                var to = readLines;
-                var chunkPath = Path.Join(_configuration.ChunkFilesBasePath, string.Format("{0}-{1}-{2}.txt", fileName.Replace(@"\", "_").Replace("/", "_"), from, to));
+                var to = readLines += _configuration.LinesBuffer;
+
+                var chunkPath = Path.Join(
+                    _configuration.ChunkFilesBasePath,
+                    $@"{fileName
+                        .Replace(@"\", "_", System.StringComparison.InvariantCultureIgnoreCase)
+                        .Replace("/", "_", System.StringComparison.InvariantCultureIgnoreCase)}-{from}-{to}.txt"
+                );
 
                 yield return new ChunkFileProcess
                 {
@@ -46,13 +53,6 @@ namespace File.MergeSort.Sorters
                     Task = System.IO.File.WriteAllLinesAsync(chunkPath, takenResults, token)
                 };
             }
-        }
-
-        public sealed class ChunkFileProcess
-        {
-            public string ChunkFileName { get; set; }
-            public string FromTo { get; set; }
-            public Task Task { get; set; }
         }
 
         public async Task SortChunks(CancellationToken token)
@@ -65,12 +65,12 @@ namespace File.MergeSort.Sorters
             int readLines = 0;
             while (token.IsCancellationRequested == false)
             {
-                var oneRunResult = 
+                var oneRunResult =
                     chunks
                         .SelectMany(chunkLines => chunkLines.Skip(readLines).Take(oneFileBufferLines))
                         .Select(int.Parse)
                         .OrderBy(i => i)
-                        .Select(i => i.ToString())
+                        .Select(i => i.ToString(CultureInfo.InvariantCulture))
                     .ToArray();
 
                 if (oneRunResult.Any() == false) break;
@@ -78,20 +78,6 @@ namespace File.MergeSort.Sorters
                 await System.IO.File.AppendAllLinesAsync(_configuration.OutputFile, oneRunResult, token);
                 readLines += oneFileBufferLines;
             }
-        }
-
-        public sealed class DefaultSorterConfiguration
-        {
-            public DefaultSorterConfiguration(string outputFile, string chunkFilesBasePath, int linesBuffer)
-            {
-                OutputFile = outputFile;
-                ChunkFilesBasePath = chunkFilesBasePath;
-                LinesBuffer = linesBuffer;
-            }
-
-            public string OutputFile { get; }
-            public string ChunkFilesBasePath { get; }
-            public int LinesBuffer { get; }
         }
     }
 }

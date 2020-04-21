@@ -9,7 +9,7 @@ namespace File.Generator
     {
         public static CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
-        public static DefaultGenerator Generator => new DefaultGenerator(new DefaultGenerator.GeneratorConfiguration(
+        public static DefaultGenerator Generator = new DefaultGenerator(new GeneratorConfiguration(
             Constants.DefaultRangeOfInputedLines,
             Constants.DefaultFileBasePath
         ));
@@ -21,7 +21,21 @@ namespace File.Generator
 
         public static class UI
         {
-            public static void UpdateElapsed() => Model.TimeElapsed = Metrics.Stopwatch.Elapsed;
+            public static SemaphoreSlim SemaphoreSlim = default;
+
+            public static void UpdateElapsed()
+            {
+                try
+                {
+                    //not atomic so have to lock
+                    SemaphoreSlim.Wait();
+                    Model.TimeElapsed = Metrics.Stopwatch.Elapsed;
+                }
+                finally
+                {
+                    SemaphoreSlim.Release();
+                }
+            }
 
             public static FileGeneratorModel Model = new FileGeneratorModel();
             public static TaskBasedRenderingLoop<FileGeneratorModel, FileGeneratorView> RenderingLoop =
@@ -34,7 +48,7 @@ namespace File.Generator
                     {
                         Model.Skip += 10;
                     })
-                    .Model(Model)
+                    .Model(Model, out SemaphoreSlim)
                     .ToView<FileGeneratorView>()
                     .WithLoop<TaskBasedRenderingLoop<FileGeneratorModel, FileGeneratorView>>();
         }

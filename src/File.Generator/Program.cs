@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace File.Generator
 {
-
     public static class Program
     {
         public static async Task Main(string[] args)
@@ -26,10 +24,11 @@ namespace File.Generator
                         NumberOfLines = process.NumberOfLines
                     };
                     process.Task.ContinueWith(_ =>
-                    {
-                        model.IsDone = true;
-                        Singletones.UI.UpdateElapsed();
-                    });
+                      {
+                          model.IsDone = true;
+                          Singletones.UI.UpdateElapsed();
+                      }, TaskScheduler.Current);
+
                     Singletones.UI.Model.GeneratedFiles.Add(model);
                     return process.Task;
                 })

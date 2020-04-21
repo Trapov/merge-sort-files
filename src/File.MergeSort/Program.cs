@@ -16,7 +16,7 @@ namespace File.MergeSort
                 Directory.EnumerateFiles(Constants.DefaultInputFileBasePath)
                 .Select(
                     fileName => Singletones.Sorter.Chunk(fileName, Singletones.CancellationTokenSource.Token)
-                ).SelectMany(f => 
+                ).SelectMany(f =>
                 {
                     return f.Select(t =>
                     {
@@ -30,7 +30,8 @@ namespace File.MergeSort
                         {
                             item.IsDone = true;
                             Singletones.UI.UpdateElapsed();
-                        });
+
+                        }, TaskScheduler.Current);
                         Singletones.UI.Model.ChunkedFiles.Add(item);
                         return t.Task;
                     });
